@@ -4,6 +4,15 @@
 
 Nota: o projeto foi realizado em R Markdown, portanto, para seu funcionamento é necessário ter a ultima versão do R e do Rstudio instalado em seu computador.
 
+Descrição de Arquivos:
+- Teste.RMD - Script realizado em R Markdown com todo o projeto.
+- requirements.R - Script em R com a instalação dos pacotes necessários para o projeto.
+- EDA.HTML - Script e saídas convertidos para HTML
+- desafio_manutencao_preditiva_teste.csv - Base de dados na qual será realizada a previsão de erro.
+- desafio_manutencao_preditiva_treino.csv - Base de dados ultilizada para criação do modelo
+
+
+
 Instruções:
 1 - Primeiro, instale os pacotes necessários para o projeto iniciando e rodando o arquivo "requirements.r" disponivel no repositório.
 
