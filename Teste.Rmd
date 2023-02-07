@@ -1,0 +1,408 @@
+---
+title: "Desafio - Cientista de dados"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+# 0. Carregando pacotes e dados necessários
+
+```{r}
+library(dplyr)
+library(gridExtra)
+library(car)
+library(psych)
+library(nnet)
+library(AER)
+library(lmtest)
+library(gtsummary)
+library(reshape2)
+library(ggplot2)
+library(DescTools)
+library(mlogit)
+library(tidyverse)
+```
+
+### #Carregando o banco de dados#
+
+Iremos começar importando os dados dos arquivos .CSV; também iremos mudar os nomes das colunas de nossa base para facilitar a utilização e evitar linhas muito longas.
+
+```{r}
+Dados=read.csv("desafio_manutencao_preditiva_treino.csv")
+Dados_teste=read.csv("desafio_manutencao_preditiva_teste.csv")
+Base=Dados
+Base_teste=Dados_teste
+
+colnames(Base)=c("udi","pid","type","airtemp","protemp","rotspeed","torque","toolwear","errort")
+
+colnames(Base_teste)=c("udi","pid","type","airtemp","protemp","rotspeed","torque","toolwear")
+
+```
+
+### #Convertendo variáveis#
+
+Para início de nossa análise exploratória, iremos montar um sumário geral com todas as variáveis, além de buscar valores faltantes.\
+
+```{r}
+summary(Base)
+###Como vimos no sumário, temos as variáveis "Type" e "Errort" como caracteres. Iremos converte-las para fatores para que possamos trabalhar com elas futuramente.
+
+Base=as.data.frame(unclass(Base),stringsAsFactors = TRUE)
+summary(Base)
+
+###Em seguida, iremos contar os NAs para verificar se há valores faltantes.
+sapply(Base, function(x) sum(is.na(x)))
+```
+
+Replicaremos o processo para a base que será utilizada no teste.
+
+```{r}
+summary(Base_teste)
+###Como vimos no sumário, temos as variáveis "Type" e "Errort" como caracteres. Iremos converte-las para fatores para que possamos trabalhar com elas futuramente.
+
+Base_teste=as.data.frame(unclass(Base_teste),stringsAsFactors = TRUE)
+summary(Base_teste)
+
+###Em seguida, iremos contar os NAs para verificar se há valores faltantes.
+sapply(Base_teste, function(x) sum(is.na(x)))
+```
+
+# **#####1. EDA#####**
+
+Com a confirmação que não temos valores faltantes, iremos começar a análisar as variáveis individualmente.
+
+-   Em nossa análise, iremos observar a centralidade das amostras através da média e da mediana. Para a variável categórica Type, utilizaremos um histograma para ver qual é a maior repetição desta.
+
+-   Além disso, observaremos valores como amplitude e desvio padrão para observarmos a variabilidade das variáveis.
+
+-   Também contaremos com análise gráfica de boxplot em busca de outliers, principalmente aqueles de magnitude extrema. Utilizaremos o histograma e uma curva de densidade para observarmos o quanto se assemelha a distribuição da variável com uma distribuição normal.
+
+### **#Type#**
+
+Iniciaremos a análise exploratória com a variável categórica "Type". Buscaremos nela dados fora do domínio estabelecido, ou seja, diferentes de H, M ou L.
+
+```{r}
+tipo = table(Base$type)
+tipo_teste = table(Base_teste$type)
+
+par(mfrow=c(1,2))
+barplot(tipo,main="Tipo - Base",xlab="Tipo",ylab="Qty")
+barplot(tipo_teste,main="Tipo - Teste",xlab="Tipo",ylab="Qty")
+
+
+```
+
+Com o gráfico podemos observar que não há observações fora do domínio esperado e também uma maior presença do tipo "`Low`"
+
+### **#Airtemp#**
+
+Partindo para as variáveis quantitativas, iremos começar com a variável "airtemp"
+
+```{r}
+summary(Base$airtemp)
+sd(Base$airtemp)
+
+a=ggplot(Base, aes(y=airtemp, x="AirTemp - Base")) + 
+  stat_boxplot(geom ="errorbar", width=0.25) +
+  geom_boxplot() +
+  labs(title = "Boxplot - AirTemp")+
+  ylab("Y")+
+  ylim(294,305)
+
+b=ggplot(Base, aes(x=airtemp)) + 
+  geom_histogram(aes(y=..density..),color="Black",fill="Blue")+
+  geom_density(alpha=.2,fill="#FF6666")
+
+grid.arrange(a,b,ncol=2)
+
+summary(Base_teste$airtemp)
+sd(Base_teste$airtemp)
+
+c=ggplot(Base_teste, aes(y=airtemp, x="AirTemp - Base teste")) + 
+  stat_boxplot(geom ="errorbar", width=0.25) +
+  geom_boxplot() +
+  labs(title = "Boxplot - AirTemp")+
+  ylab("Y")+
+  ylim(294,305)
+
+d=ggplot(Base_teste, aes(x=airtemp)) + 
+  geom_histogram(aes(y=..density..),color="Black",fill="Blue")+
+  geom_density(alpha=.2,fill="#FF6666")
+
+grid.arrange(c,d,ncol=2)
+```
+
+Para a variável airtemp, vemos que a média e a mediana possuem os mesmos valores, indicando dados com distribuição não viésada, o que podemos observar também no histograma, que ausenta caudas. Além disso, o boxplot e a amplitude dos dados confirmam a ausência de outliers. Por fim, temos um desvio padrão pequeno, indicando a proximidade dos dados a média.
+
+### **#Protemp#**
+
+```{r}
+summary(Base$protemp)
+sd(Base$protemp)
+
+a=ggplot(Base, aes(y=protemp, x="protemp - Base")) + 
+  stat_boxplot(geom ="errorbar", width=0.25) +
+  geom_boxplot() +
+  labs(title = "Boxplot - protemp")+
+  ylab("Y")
+
+b=ggplot(Base, aes(x=protemp)) + 
+  geom_histogram(aes(y=..density..),color="Black",fill="Blue")+
+  geom_density(alpha=.2,fill="#FF6666")
+
+grid.arrange(a,b,ncol=2)
+
+summary(Base_teste$protemp)
+sd(Base_teste$protemp)
+
+c=ggplot(Base_teste, aes(y=protemp, x="protemp - Base teste")) + 
+  stat_boxplot(geom ="errorbar", width=0.25) +
+  geom_boxplot() +
+  labs(title = "Boxplot - protemp")+
+  ylab("Y")
+
+d=ggplot(Base_teste, aes(x=protemp)) + 
+  geom_histogram(aes(y=..density..),color="Black",fill="Blue")+
+  geom_density(alpha=.2,fill="#FF6666")
+
+grid.arrange(c,d,ncol=2)
+```
+
+De modo semelhante ao observado na variável anterior, a variável "protemp" também possui média e mediana iguais, indicando dados não viésados em conjunto com a ausência de caudas. Seu desvio padrão é pequeno e não temos a presença de outliers na amostra.
+
+### **#Rotspeed#**
+
+```{r}
+summary(Base$rotspeed)
+sd(Base$rotspeed)
+
+a=ggplot(Base, aes(y=rotspeed, x="rotspeed - Base")) + 
+  stat_boxplot(geom ="errorbar", width=0.25) +
+  geom_boxplot() +
+  labs(title = "Boxplot - rotspeed")+
+  ylab("Y")
+
+b=ggplot(Base, aes(x=rotspeed)) + 
+  geom_histogram(aes(y=..density..),color="Black",fill="Blue")+
+  geom_density(alpha=.2,fill="#FF6666")
+
+grid.arrange(a,b,ncol=2)
+
+summary(Base_teste$rotspeed)
+sd(Base_teste$rotspeed)
+
+c=ggplot(Base_teste, aes(y=rotspeed, x="rotspeed - Base teste")) + 
+  stat_boxplot(geom ="errorbar", width=0.25) +
+  geom_boxplot() +
+  labs(title = "Boxplot - rotspeed")+
+  ylab("Y")
+
+d=ggplot(Base_teste, aes(x=rotspeed)) + 
+  geom_histogram(aes(y=..density..),color="Black",fill="Blue")+
+  geom_density(alpha=.2,fill="#FF6666")
+
+grid.arrange(c,d,ncol=2)
+```
+
+A variável **Rotspeed** apresenta um cenário diferente do visto anteriormente. Através do histograma podemos ver nitidamente uma cauda no lado esquerdo do gráfico, indicando uma concentração. Além disso, contamos com a presença de diversos outliers, uma amplitude e desvio padrão maiores.
+
+### **#Torque#**
+
+```{r}
+summary(Base$torque)
+sd(Base$torque)
+
+a=ggplot(Base, aes(y=torque, x="torque - Base")) + 
+  stat_boxplot(geom ="errorbar", width=0.25) +
+  geom_boxplot() +
+  labs(title = "Boxplot - torque")+
+  ylab("Y")
+
+b=ggplot(Base, aes(x=torque)) + 
+  geom_histogram(aes(y=..density..),color="Black",fill="Blue")+
+  geom_density(alpha=.2,fill="#FF6666")
+
+grid.arrange(a,b,ncol=2)
+
+summary(Base_teste$torque)
+sd(Base_teste$torque)
+
+c=ggplot(Base_teste, aes(y=torque, x="torque - Base teste")) + 
+  stat_boxplot(geom ="errorbar", width=0.25) +
+  geom_boxplot() +
+  labs(title = "Boxplot - torque")+
+  ylab("Y")
+
+d=ggplot(Base_teste, aes(x=torque)) + 
+  geom_histogram(aes(y=..density..),color="Black",fill="Blue")+
+  geom_density(alpha=.2,fill="#FF6666")
+
+grid.arrange(c,d,ncol=2)
+```
+
+A variável **Torque** apresentou uma distribuição bem semelhante a normal, com média e mediana semelhantes e um desvio padrão pequeno. Todavia, podemos observar através do boxplot a presença de outlier em ambos os lados da amostra, mas estes não chegam a valores extremos.
+
+### **#Toolwear#** 
+
+```{r}
+summary(Base$toolwear)
+sd(Base$toolwear)
+
+a=ggplot(Base, aes(y=toolwear, x="toolwear - Base")) + 
+  stat_boxplot(geom ="errorbar", width=0.25) +
+  geom_boxplot() +
+  labs(title = "Boxplot - toolwear")+
+  ylab("Y")
+
+b=ggplot(Base, aes(x=toolwear)) + 
+  geom_histogram(aes(y=..density..),color="Black",fill="Blue")+
+  geom_density(alpha=.2,fill="#FF6666")
+
+grid.arrange(a,b,ncol=2)
+
+summary(Base_teste$toolwear)
+sd(Base_teste$toolwear)
+
+c=ggplot(Base_teste, aes(y=toolwear, x="toolwear - Base teste")) + 
+  stat_boxplot(geom ="errorbar", width=0.25) +
+  geom_boxplot() +
+  labs(title = "Boxplot - toolwear")+
+  ylab("Y")
+
+d=ggplot(Base_teste, aes(x=toolwear)) + 
+  geom_histogram(aes(y=..density..),color="Black",fill="Blue")+
+  geom_density(alpha=.2,fill="#FF6666")
+
+grid.arrange(c,d,ncol=2)
+```
+
+A variável **toolwear** apresentou uma distribuição semelhante para todos os niveis até a base acima de 200, onde decaiu rapidamente. Isso demonstra uma menor concentração no lado direito da amostra e que não está normalmente distribuida. Mesmo sem detectar outliers através do boxplot, temos um grande desvio padrão.
+
+# #####2. Previsão do tipo de falha#####
+
+Para a previsão do tipo de falha, iremos utilizar um modelo de **Regressão Logistica multinomial**, pois estamos tratando de uma variável **categórica**, o tipo de erro da máquina.
+
+```{r}
+#inicialmente, iremos alterar a referencia da variável explorada para a "No Failure", permitindo assim que ela seja a base a ser comparada com as demais categorias.
+
+Base$errort = relevel(Base$errort, ref= "No Failure")
+levels(Base$errort)
+
+#Agora iremos analisar graficamente a existencia de multicolinearidade entre as variáveis explicativas.
+
+pairs.panels(Base[3:8])
+#Como tivemos um valor alto entre as variáveis airtemp/protemp, e rotspeed/torque iremos realizar também um teste "vif" para analisar mais a fundo a multicolinearidade.
+
+testemc=lm(as.numeric(errort)~airtemp+protemp+rotspeed+type+torque+toolwear, data=Base)
+vif(testemc)
+
+#No teste VIF obtivemos valores abaixo de 5 para todas as variáveis, então, apesar de próximos, iremos considerar a não existencia de multicolinearidade no modelo.
+```
+
+Agora testaremos em busca de categorias irrelevantes de acordo com o teste de Hausman-McFadden, excluindo a categoria "Random Failures" para verificar se os erros aleatórios tem impacto em nosso modelo.
+
+```{r}
+regcomp=mlogit(errort~1|type+airtemp+protemp+rotspeed+torque+toolwear,
+               data=Base, shape="wide",
+               reflevel="No Failure")
+
+regsemerro=mlogit(errort~1|type+airtemp+protemp+rotspeed+torque+toolwear,
+               data=Base, shape="wide",
+               reflevel="No Failure",
+               alt.subset=c("No Failure", "Heat Dissipation Failure", "Overstrain Failure", "Power Failure","Tool Wear Failure"))
+
+hmftest(regcomp,regsemerro)
+               
+```
+
+Com a rejeição da hipotese alternativa, não rejeitamos a hipotese nula e portanto não levaremos a categoria "Random Failures" como irrelevante.
+
+Agora, iremos estimar uma regressão multinomial para nossa variável dependente utilizando todas as demais como explicativas (Exceto udi e pid por serem variáveis de identificação).
+
+Além disso, iremos também estimar um modelo nulo e compara-lo com o nosso modelo para ver se são iguais ou diferentes.
+
+```{r}
+modelo=multinom(errort~type+airtemp+protemp+rotspeed+torque+toolwear,data = Base, model = TRUE)
+modelonulo=multinom(errort~1, data = Base, model = TRUE)
+
+anova(modelo,modelonulo)
+
+
+```
+
+Como o valor de p obtido no teste foi inferior a 0,05; podemos dizer que o modelo estimado difere do modelo nulo e portanto temos um modelo funcional.
+
+##Para aprofundar a análise, iremos estimar mais alguns modelos sem as variáveis que estavam com maiores tendências a multicolinearidade e compara-lo ao modelo completo através das do Critério de informação Bayesiano e de Akaike (BIC e AIC, respectivamente).##
+
+```{r}
+#Modelo 2 = modelo sem a variável "protemp"
+modelo2=multinom(errort~type+airtemp+rotspeed+torque+toolwear,data = Base, model = TRUE)
+#Modelo 3 = modelo sem a variável "rotspeed"
+modelo3 = multinom(errort~type+airtemp+protemp+torque+toolwear,data = Base, model = TRUE)
+#Modelo 4 = modelo sem as variáveis "rotspeed" e "protemp"
+modelo4 = multinom(errort~type+airtemp+torque+toolwear,data = Base, model = TRUE)
+
+anova(modelo,modelo2)
+anova(modelo,modelo3)
+anova(modelo,modelo4)
+
+
+```
+
+Como podemos ver, todas os modelos são estatisticamente diferentes, agora iremos comparar seus critérios de ifnormação
+
+```{r}
+BIC(modelo, modelo2, modelo3, modelo4)
+AIC(modelo, modelo2, modelo3, modelo4)
+```
+
+-   Como para ambos os critérios de informação o modelo completo se demonstrou melhor devido aos menores resultados para o BIC e o AIC, iremos prosseguir nossa análise utilizando-o para a previsão.
+
+Agora iremos testar a eficiencia e perfomance do modelo utilizando o pseudo R-quadrado e também os efeitos gerais e especificos dele.
+
+```{r}
+PseudoR2(modelo, which = "Nagelkerke")
+#Com o Pseudo R-Quadrado de 0,7455, vemos que aproximadamente 75% das variáveis seriam explicadas pelo modelo. Como estamos tratando de uma regressão multinomial, não podemos levar esta categoria como indicador de perfomance do modelo.
+
+Anova(modelo,type="II", test="Wald")
+#o teste anova demonstrou que todas as variáveis utilizadas para o modelo são significantes.
+
+summary(modelo)
+#Com o Summary, podemos ver os coeficientes  de cada erro quando referenciados pelo categoria de referencia, ou seja, sem erros.
+
+coeftest(modelo)
+#Por fim, podemos ver como cada variável explicativa influencia cada tipo de erro, além de sua significancia para estes casos.
+
+exp(coef(modelo))
+#Agora veremos as probabilidades de cada erro de acordo com o o modelo estimado para as variáveis explicativas.
+```
+
+Iremos testar o nosso modelo em sua própria base de dados para vermos quão semelhante são os resultados de erros previstos com os reais.
+
+```{r}
+Base2=Base
+
+# Prevendo valores
+Base2$Erroprevisto = predict(modelo, newdata = Base2, "class")
+
+#Faremos uma tabela cruzada e soma diagonal para vermos a precisão do modelo em sua própria base.
+tab = table(Base2$errort, Base2$Erroprevisto)
+round((sum(diag(tab))/sum(tab))*100,2)
+```
+
+Nosso modelo contou com aproxidamente 98% de precisão
+
+Por fim, iremos utilizar o modelo para prever os erros em nossa Base de testes e salva-lo em um arquivo .csv.
+
+```{r}
+
+Base_teste$predictedValue=predict(modelo,newdata=Base_teste,"class")
+
+
+Resultado = rowid_to_column(Base_teste,"rowNumber")
+Resultado = Resultado %>% select(rowNumber,predictedValue)
+
+
+write.csv(Resultado,"Resultado.csv",row.names = FALSE)
+```
