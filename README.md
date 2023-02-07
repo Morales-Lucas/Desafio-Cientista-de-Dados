@@ -20,6 +20,6 @@ Instruções:
 
 3 - Para executar o projeto, abra o arquivo "Teste.rmd" no R Studio. A partir desse passo, temos 2 opções principais para roda-lo:
 
-3a - Utilize a função "Knit" presente no RStudio para exportar o projeto inteiro para oformato HTML. Esta opção lhe dará um arquivo .HTML com o script e retornos e também um arquivo "resultados.csv" com o número da coluna e erro previsto.
+3a - Utilize a função "Knit" presente no RStudio para exportar o projeto inteiro para oformato HTML. Esta opção lhe dará um arquivo .HTML com o script e os retornos, além de um arquivo denominado  "resultados.csv", que contém o número da coluna e o erro previsto.
 
 3b - Execute os chunks individualmente ou em conjunto dentro do próprio RStudio. Atente-se a ordem dos blocos durante sua execução. Caso queria pular a EDA e ir direto a modelagem preditiva, certifique-se de rodar primeiro os chunks da seção 0 "Carregando pacotes e dados necessários". Ao final, teremos também um arquivo "resultados.csv" com o número da coluna e erro previsto.
